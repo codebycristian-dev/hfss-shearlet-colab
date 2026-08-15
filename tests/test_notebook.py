@@ -25,6 +25,10 @@ def test_colab_notebook_public_clone_and_gate1_assertions_are_reproducible():
     assert '"git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"' in source
     assert "Expected 40 physical PNGs" in source
     assert "Expected 40 presentation PNGs" in source
+    assert "Expected 40 article PNGs" in source
+    assert "Expected 3 article figures" in source
     assert "Expected 40 numeric matrices" in source
     assert "Expected 40 metric rows" in source
     assert "parallel_y" in source and "perpendicular_y" in source
+    assert "shared `cividis` scale" in source
+    assert "numeric NPZ matrices" in source

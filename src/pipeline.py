@@ -13,7 +13,10 @@ from .dataset import (
 from .fld_reader import pair_real_imag
 from .field_processing import field_magnitude, reshape_plane
 from .geometry_masks import mask_xz, mask_yz, apply_mask
-from .visualization import save_intensity_image
+from .visualization import (
+    ARTICLE_COLORMAP, ARTICLE_OUTSIDE_MASK_COLOR,
+    save_article_image, save_article_mosaic, save_intensity_image,
+)
 
 EXPECTED_OUTPUTS = 40
 PRESENTATION_PERCENTILE = 99.5
@@ -56,7 +59,9 @@ def _validate_cut_coordinates(pair: FieldPair, coords: np.ndarray, coord_unit: s
 
 def _clear_generated_files(output_root: Path) -> None:
     """Remove only artifacts owned by this pipeline so reruns have exact counts."""
-    for relative, suffix in (("01_intensity", ".png"), ("02_numeric", ".npz")):
+    for relative, suffix in (
+        ("01_intensity", ".png"), ("02_numeric", ".npz"), ("03_article_figures", ".png")
+    ):
         directory = output_root / relative
         if directory.exists():
             for path in directory.rglob(f"*{suffix}"):
@@ -125,6 +130,10 @@ def run_intensity_pipeline(
             output_root / "01_intensity" / "presentation_shared" / f"Mode{pair.mode}" /
             pair.plane / f"{cut.cut_name}.png"
         )
+        article_png_path = (
+            output_root / "01_intensity" / "article_shared" / f"Mode{pair.mode}" /
+            pair.plane / f"{cut.cut_name}.png"
+        )
         matrix_path = (
             output_root / "02_numeric" / f"Mode{pair.mode}" /
             pair.plane / f"{cut.cut_name}.npz"
@@ -160,6 +169,11 @@ def run_intensity_pipeline(
             f"{title_line_1}\nElectric-field magnitude |E| · {FREQUENCY_GHZ:g} GHz · presentation shared scale",
             cut.xlabel, cut.ylabel, vmin=physical_vmin, vmax=presentation_vmax,
         )
+        save_article_image(
+            cut.axis1, cut.axis2, cut.raw, cut.mask, article_png_path,
+            f"{cut.cut_name} · Mode {pair.mode} ({POLARIZATION_FIGURE_LABEL[pair.mode]})",
+            cut.xlabel, cut.ylabel, vmin=physical_vmin, vmax=presentation_vmax,
+        )
 
         inside = cut.raw[cut.mask]
         rows.append({
@@ -177,6 +191,38 @@ def run_intensity_pipeline(
             "presentation_shared_png": str(presentation_png_path.relative_to(output_root)),
             "numeric_matrix": str(matrix_path.relative_to(output_root)),
         })
+
+    def panel(cut):
+        return {
+            "axis1": cut.axis1, "axis2": cut.axis2, "intensity": cut.raw, "mask": cut.mask,
+            "title": f"{cut.cut_name}\nMode {cut.pair.mode} ({POLARIZATION_FIGURE_LABEL[cut.pair.mode]})",
+            "xlabel": cut.xlabel, "ylabel": cut.ylabel,
+        }
+
+    article_figure_paths = [
+        output_root / "03_article_figures" / "xz_mosaic_all.png",
+        output_root / "03_article_figures" / "yz_mosaic_all.png",
+        output_root / "03_article_figures" / "representative_2x2.png",
+    ]
+    xz_panels = [panel(cut) for mode in (1, 2) for cut in prepared
+                  if cut.pair.mode == mode and cut.pair.plane == "XZ"]
+    yz_panels = [panel(cut) for mode in (1, 2) for cut in prepared
+                  if cut.pair.mode == mode and cut.pair.plane == "YZ"]
+    representative = [panel(next(cut for cut in prepared
+                                  if cut.pair.mode == mode and cut.cut_name == name))
+                      for name in ("T05", "A05") for mode in (1, 2)]
+    save_article_mosaic(
+        xz_panels, article_figure_paths[0], nrows=2, ncols=10,
+        vmin=physical_vmin, vmax=presentation_vmax,
+    )
+    save_article_mosaic(
+        yz_panels, article_figure_paths[1], nrows=2, ncols=10,
+        vmin=physical_vmin, vmax=presentation_vmax,
+    )
+    save_article_mosaic(
+        representative, article_figure_paths[2], nrows=2, ncols=2,
+        vmin=physical_vmin, vmax=presentation_vmax,
+    )
 
     metrics_path = output_root / "04_metrics" / "field_metrics.csv"
     metrics_path.parent.mkdir(parents=True, exist_ok=True)
@@ -202,6 +248,11 @@ def run_intensity_pipeline(
         "presentation_percentile": PRESENTATION_PERCENTILE,
         "presentation_shared_vmin_V_per_m": physical_vmin,
         "presentation_shared_vmax_V_per_m": presentation_vmax,
+        "article_colormap": ARTICLE_COLORMAP,
+        "article_scale_type": "shared global percentile",
+        "article_vmax_V_per_m": presentation_vmax,
+        "article_outside_mask_color": ARTICLE_OUTSIDE_MASK_COLOR,
+        "article_figures": [str(path.relative_to(output_root)) for path in article_figure_paths],
         "polarization_by_mode": {f"Mode{mode}": value for mode, value in POLARIZATION_BY_MODE.items()},
     }
     metadata_path = output_root / "04_metrics" / "run_metadata.json"
@@ -211,11 +262,15 @@ def run_intensity_pipeline(
 
     physical_pngs = list((output_root / "01_intensity" / "physical_shared").rglob("*.png"))
     presentation_pngs = list((output_root / "01_intensity" / "presentation_shared").rglob("*.png"))
+    article_pngs = list((output_root / "01_intensity" / "article_shared").rglob("*.png"))
     matrices = list((output_root / "02_numeric").rglob("*.npz"))
-    if not all(len(items) == EXPECTED_OUTPUTS for items in (physical_pngs, presentation_pngs, matrices, rows)):
+    if not all(len(items) == EXPECTED_OUTPUTS for items in (
+        physical_pngs, presentation_pngs, article_pngs, matrices, rows
+    )):
         raise RuntimeError(
             f"Gate 1 output count mismatch: {len(physical_pngs)} physical PNGs, "
-            f"{len(presentation_pngs)} presentation PNGs, {len(matrices)} matrices, "
+            f"{len(presentation_pngs)} presentation PNGs, {len(article_pngs)} article PNGs, "
+            f"{len(matrices)} matrices, "
             f"{len(rows)} metric rows"
         )
     return rows

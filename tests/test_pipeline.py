@@ -57,6 +57,8 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     _dataset(data)
 
     plot_calls = []
+    article_calls = []
+    mosaic_calls = []
     def fake_plot(axis1, axis2, intensity, out_path, title, *args, **kwargs):
         assert intensity.ndim == 2
         assert kwargs["vmin"] == 0.0
@@ -68,6 +70,20 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
         Path(out_path).write_bytes(b"PNG")
 
     monkeypatch.setattr("src.pipeline.save_intensity_image", fake_plot)
+    def fake_article(axis1, axis2, intensity, mask, out_path, title, *args, **kwargs):
+        assert intensity.ndim == mask.ndim == 2
+        assert intensity.shape == mask.shape
+        assert kwargs["vmin"] == 0.0
+        article_calls.append((Path(out_path), kwargs["vmax"], title))
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_bytes(b"PNG")
+    def fake_mosaic(panels, out_path, **kwargs):
+        assert kwargs["vmin"] == 0.0
+        mosaic_calls.append((Path(out_path), panels, kwargs))
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(out_path).write_bytes(b"PNG")
+    monkeypatch.setattr("src.pipeline.save_article_image", fake_article)
+    monkeypatch.setattr("src.pipeline.save_article_mosaic", fake_mosaic)
     stale = output / "01_intensity" / "old.png"
     stale.parent.mkdir(parents=True)
     stale.write_bytes(b"old")
@@ -81,12 +97,15 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     )
     physical_pngs = list((output / "01_intensity" / "physical_shared").rglob("*.png"))
     presentation_pngs = list((output / "01_intensity" / "presentation_shared").rglob("*.png"))
+    article_pngs = list((output / "01_intensity" / "article_shared").rglob("*.png"))
     matrices = list((output / "02_numeric").rglob("*.npz"))
     with (output / "04_metrics" / "field_metrics.csv").open(newline="") as stream:
         metrics = list(csv.DictReader(stream))
 
-    assert len(rows) == len(physical_pngs) == len(presentation_pngs) == len(matrices) == len(metrics) == 40
+    assert len(rows) == len(physical_pngs) == len(presentation_pngs) == len(article_pngs) == len(matrices) == len(metrics) == 40
     assert len(plot_calls) == 80
+    assert len(article_calls) == 40
+    assert len(mosaic_calls) == 3
     assert not stale.exists()
     assert {(p.parent.parent.name, p.parent.name) for p in physical_pngs} == {
         ("Mode1", "XZ"), ("Mode1", "YZ"), ("Mode2", "XZ"), ("Mode2", "YZ")
@@ -94,6 +113,10 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     sample = np.load(matrices[0])
     assert sample["intensity_V_per_m"].ndim == 2
     assert sample["intensity_V_per_m"].dtype.kind == "f"
+    assert set(sample.files) == {
+        "intensity_V_per_m", "unmasked_intensity_V_per_m", "inside_solid",
+        "axis1_mm", "axis2_mm", "plane", "fixed_mm", "mode", "polarization",
+    }
     assert np.isclose(float(metrics[0]["E_max_V_per_m"]), np.sqrt(3))
     assert set(row["polarization"] for row in metrics) == {"parallel_y", "perpendicular_y"}
     assert str(sample["polarization"]) in {"parallel_y", "perpendicular_y"}
@@ -110,11 +133,28 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     assert metadata["YZ_cut_positions_mm"] == list(YZ)
     assert metadata["presentation_percentile"] == 99.5
     assert metadata["presentation_shared_vmax_V_per_m"] < metadata["physical_shared_vmax_V_per_m"]
+    assert metadata["article_colormap"] == "cividis"
+    assert metadata["article_scale_type"] == "shared global percentile"
+    assert metadata["article_vmax_V_per_m"] == metadata["presentation_shared_vmax_V_per_m"]
+    assert metadata["article_outside_mask_color"] == "#f2f2f2"
+    assert metadata["article_figures"] == [
+        "03_article_figures/xz_mosaic_all.png",
+        "03_article_figures/yz_mosaic_all.png",
+        "03_article_figures/representative_2x2.png",
+    ]
     assert metadata["polarization_by_mode"] == {"Mode1": "parallel_y", "Mode2": "perpendicular_y"}
     physical_limits = {limit for path, limit, _ in plot_calls if "physical_shared" in path.parts}
     presentation_limits = {limit for path, limit, _ in plot_calls if "presentation_shared" in path.parts}
+    article_limits = {limit for _, limit, _ in article_calls}
     assert physical_limits == {metadata["physical_shared_vmax_V_per_m"]}
     assert presentation_limits == {metadata["presentation_shared_vmax_V_per_m"]}
+    assert article_limits == {metadata["presentation_shared_vmax_V_per_m"]}
+    assert {path.name for path, _, _ in mosaic_calls} == {
+        "xz_mosaic_all.png", "yz_mosaic_all.png", "representative_2x2.png"
+    }
+    assert [(call[2]["nrows"], call[2]["ncols"], len(call[1])) for call in mosaic_calls] == [
+        (2, 10, 20), (2, 10, 20), (2, 2, 4)
+    ]
     outlier_matrix = np.load(output / "02_numeric" / "Mode2" / "XZ" / "T10.npz")
     assert outlier_matrix["intensity_V_per_m"].max() == metadata["physical_shared_vmax_V_per_m"]
     assert outlier_matrix["intensity_V_per_m"].max() > metadata["presentation_shared_vmax_V_per_m"]

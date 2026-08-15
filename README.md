@@ -24,7 +24,8 @@ This first gate intentionally implements only:
 6. 40 numeric single-channel electric-field magnitude matrices in V/m (20 cuts × 2 modes).
 7. 40 `physical_shared` PNGs using the global in-solid maximum.
 8. 40 `presentation_shared` PNGs using one global 99.5th-percentile limit.
-9. Per-cut validation metrics and run-scale metadata under `outputs/04_metrics`.
+9. 40 publication-ready `article_shared` PNGs plus shared-scale mosaics under `outputs/03_article_figures`.
+10. Per-cut validation metrics and run-scale metadata under `outputs/04_metrics`.
 
 **Shearlet processing is intentionally excluded until Gate 1 is audited.**
 
@@ -50,3 +51,9 @@ are rendered visualization artifacts only—not scientific transform inputs. Nei
 visualization scale clips or normalizes the saved scientific matrices or their metrics.
 Run metadata records the actual input ZIP filename and computed SHA-256; no expected
 dataset hash is hard-coded.
+
+`outputs/01_intensity/article_shared` is for publication-quality visualization only.
+It uses a shared global-percentile `cividis` scale and a neutral light-gray masked
+exterior; it does not use per-image normalization or image enhancement. Scientific
+analysis and any future Shearlet input continue to use only the numeric single-channel
+NPZ matrices under `outputs/02_numeric`.
