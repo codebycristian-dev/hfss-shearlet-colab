@@ -27,6 +27,8 @@
     45
   ],
   "expected_intensity_images": 40,
-  "shearlet_levels_future_gate": 3,
-  "notes": "Gate 1 intentionally excludes shearlet processing."
+  "shearlet_nScales": 3,
+  "shearlet_shearLevels": [1, 1, 2],
+  "shearlet_full": 0,
+  "notes": "Gate 1 reconstructs HFSS matrices; Gate 2 reads the unmasked numeric matrix without modifying Gate 1."
 }

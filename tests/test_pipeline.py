@@ -124,6 +124,7 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     assert metadata["dataset_filename"] == "Entregas_papper(1).zip"
     assert metadata["dataset_sha256"] == dataset_hash
     assert metadata["git_commit_sha"] == "1234567890abcdef"
+    assert metadata["repository_ref"] == "main"
     assert metadata["frequency_GHz"] == 2.45
     assert metadata["quantity"] == "Electric-field magnitude |E|"
     assert metadata["unit"] == "V/m"
