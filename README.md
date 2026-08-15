@@ -6,15 +6,17 @@ The repository code is public. No GitHub account, token, or other GitHub credent
 
 ## Open in Colab
 
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/codebycristian-dev/hfss-shearlet-colab/blob/main/notebook/HFSS_Shearlet_2p45GHz.ipynb)
+[![Open Gate 2 development notebook in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/codebycristian-dev/hfss-shearlet-colab/blob/gate2-shearlet/notebook/HFSS_Shearlet_2p45GHz.ipynb)
+
+During Gate 2 validation the notebook explicitly clones `REPO_REF = "gate2-shearlet"`. **Immediately before the validated branch is merged to `main`, change `REPO_REF` and this badge back to `main`.**
 
 1. Open the notebook using the badge above.
 2. Set `DATA_SOURCE` to `"DRIVE"` or `"UPLOAD"` in the data-source cell.
 3. For `"DRIVE"`, place the dataset ZIP in Google Drive and update `DATA_ZIP` if necessary. For `"UPLOAD"`, select the dataset ZIP when prompted.
 4. Run all cells. The notebook clones the public repository directly and does not request GitHub credentials.
 
-## Gate 1 scope
-This first gate intentionally implements only:
+## Gate 1 — HFSS reconstruction
+Gate 1 implements:
 
 1. `.fld` parsing.
 2. Real/imaginary pairing.
@@ -27,7 +29,33 @@ This first gate intentionally implements only:
 9. 40 publication-ready `article_shared` PNGs plus shared-scale mosaics under `outputs/03_article_figures`.
 10. Per-cut validation metrics and run-scale metadata under `outputs/04_metrics`.
 
-**Shearlet processing is intentionally excluded until Gate 1 is audited.**
+Gate 1 remains the authoritative HFSS reconstruction stage and is not changed by Gate 2.
+
+## Gate 2 — three-level discrete Shearlet analysis
+
+Gate 2 reads only `outputs/02_numeric/**.npz` and transforms the
+`unmasked_intensity_V_per_m` arrays with pyShearLab-MIND 0.0.3. It uses exactly
+three scales (`shearLevels=[1,1,2]`), reflect-pads without resizing, RMS-normalizes
+the directional coefficients, and excludes the low-pass filter from the three
+scale-response maps. Level 1 is the coarser spatial-scale band, Level 2 is the
+intermediate band, and Level 3 is the finer band; exact physical frequency cutoffs
+have not been calibrated. The phantom mask is applied only after decomposition for the
+full-phantom and physical 1.5-mm-interior analyses.
+
+“Coefficient energy” means a discrete sum of squared RMS-normalized Shearlet
+coefficients. It is not electromagnetic energy and is not Poynting intensity.
+
+Run Gate 2 after Gate 1 with:
+
+```python
+from src.shearlet_analysis import run_shearlet_pipeline
+run_shearlet_pipeline("outputs")
+```
+
+Artifacts are written under `outputs/05_shearlet`: 40 scientific NPZ files
+containing exactly three full-resolution numeric maps each, 120 shared-per-level
+PNG maps, level and directional metric CSV files, article figures, and complete
+run metadata. The Colab notebook runs both gates and creates one downloadable ZIP.
 
 ## Data
 The HFSS dataset is not included in this public repository. Do not commit it to GitHub. During development, place the original dataset ZIP in Google Drive or upload it manually in Colab.

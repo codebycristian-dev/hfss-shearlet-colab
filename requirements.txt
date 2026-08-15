@@ -2,3 +2,5 @@ numpy>=1.26,<3.0
 matplotlib>=3.8,<4.0
 pytest>=8.0,<9.0
 nbformat>=5.9,<6.0
+scipy>=1.11,<2.0
+pyShearLab-MIND==0.0.3
