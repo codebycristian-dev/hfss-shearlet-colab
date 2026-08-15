@@ -2,6 +2,17 @@
 
 Reproducible processing pipeline for the 2.45 GHz HFSS cylindrical phantom dataset.
 
+The repository code is public. No GitHub account, token, or other GitHub credentials are required to run the Colab notebook. The HFSS dataset is **not public** and must currently be supplied separately from Google Drive or by manual upload.
+
+## Open in Colab
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/codebycristian-dev/hfss-shearlet-colab/blob/main/notebook/HFSS_Shearlet_2p45GHz.ipynb)
+
+1. Open the notebook using the badge above.
+2. Set `DATA_SOURCE` to `"DRIVE"` or `"UPLOAD"` in the data-source cell.
+3. For `"DRIVE"`, place the dataset ZIP in Google Drive and update `DATA_ZIP` if necessary. For `"UPLOAD"`, select the dataset ZIP when prompted.
+4. Run all cells. The notebook clones the public repository directly and does not request GitHub credentials.
+
 ## Gate 1 scope
 This first gate intentionally implements only:
 
@@ -18,7 +29,7 @@ This first gate intentionally implements only:
 **Shearlet processing is intentionally excluded until Gate 1 is audited.**
 
 ## Data
-Do not commit the HFSS dataset to GitHub. During development, place the original dataset ZIP in Google Drive or upload it in Colab.
+The HFSS dataset is not included in this public repository. Do not commit it to GitHub. During development, place the original dataset ZIP in Google Drive or upload it manually in Colab.
 
 Expected phantom data:
 - Mode 1: T01–T10 + A01–A10, real and imaginary.
