@@ -42,7 +42,7 @@ VISUALIZATION_PERCENTILE = 99.5
 EXPECTED_CUTS = 40
 EXPECTED_LEVEL_MAPS = EXPECTED_CUTS * N_SCALES
 RECONSTRUCTION_TOLERANCE = 1e-10
-REPO_REF = "gate2-shearlet"
+REPO_REF = "main"
 EXPECTED_TOTAL_FILTERS = 33
 EXPECTED_LOWPASS_FILTERS = 1
 EXPECTED_FILTERS_PER_SCALE = {1: 8, 2: 8, 3: 16}
@@ -405,8 +405,9 @@ def run_shearlet_pipeline(output_root: str | Path, *, git_commit_sha: str | None
         "coefficient_normalization": "C_normalized[:,:,k] = C_raw[:,:,k] / shearletSystem['RMS'][k]",
         "scale_energy_formula": "sqrt(sum_k(abs(C_normalized_jk)**2)); [0,0,0] low-pass excluded",
         "coefficient_energy_interpretation": (
-            "Coefficient energy means a discrete sum of squared RMS-normalized Shearlet "
-            "coefficients. It is not electromagnetic energy and is not Poynting intensity."
+            "Shearlet coefficient energy is a signal-processing quantity based on squared "
+            "RMS-normalized Shearlet coefficients. It is not electromagnetic energy and is "
+            "not Poynting intensity."
         ),
         "directional_entropy_formula": "H = -sum_k(p_k ln p_k) / ln(K), p_k = E_k/sum_q(E_q)",
         "padding_method": "symmetric reflect padding to smallest power-of-two square; no resize/interpolation",
@@ -427,6 +428,7 @@ def run_shearlet_pipeline(output_root: str | Path, *, git_commit_sha: str | None
             "scipy": scipy.__version__, "matplotlib": matplotlib.__version__,
             "pyShearLab-MIND": backend_version(),
         },
+        "dataset_filename": gate1_metadata.get("dataset_filename"),
         "dataset_sha256": gate1_metadata.get("dataset_sha256"),
         "number_of_cuts": len(records), "number_of_numeric_scale_maps": len(records) * 3,
         "number_of_level_maps": len(list((output_root / "05_shearlet" / "level_maps").rglob("*.png"))),

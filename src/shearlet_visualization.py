@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 
 COLORMAP = "cividis"
 OUTSIDE_COLOR = "#f2f2f2"
+MODE_LABELS = {1: "Mode 1 — parallel to y", 2: "Mode 2 — perpendicular to y"}
 
 
 def _cmap():
@@ -42,7 +43,9 @@ def save_representative_levels(records, out_path, vmax):
             image = _show(axes[row, column], record["axis1"], record["axis2"],
                           record["maps"][scale], record["mask"], vmax[scale])
             ordering = {1: "coarser", 2: "intermediate", 3: "finer"}
-            axes[row, column].set_title(f"Mode {record['mode']} · Level {scale} ({ordering[scale]})")
+            axes[row, column].set_title(
+                f"{MODE_LABELS[record['mode']]} · Level {scale} ({ordering[scale]})"
+            )
             axes[row, column].set_xlabel("x [mm]" if record["plane"] == "XZ" else "y [mm]")
             axes[row, column].set_ylabel("z [mm]")
             fig.colorbar(image, ax=axes[row, column], fraction=0.046, pad=0.04)
@@ -70,7 +73,8 @@ def save_fraction_comparison(rows, out_path):
                 means = [np.mean(values) for values in samples]
                 stds = [np.std(values, ddof=1) for values in samples]
                 ax.errorbar(x, means, yerr=stds, marker="o", linestyle=linestyle,
-                            color=colors[mode], capsize=3, label=f"Mode {mode} · {roi_label}")
+                            color=colors[mode], capsize=3,
+                            label=f"{MODE_LABELS[mode]} · {roi_label}")
         ax.set_title(plane); ax.set_xticks(x, ["Level 1\n(coarser)", "Level 2\n(intermediate)",
                                            "Level 3\n(finer)"])
         ax.set_ylim(0, 1); ax.grid(axis="y", alpha=0.25)

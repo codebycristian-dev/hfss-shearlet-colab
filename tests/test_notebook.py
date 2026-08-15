@@ -8,10 +8,10 @@ def test_colab_notebook_public_clone_and_gate1_assertions_are_reproducible():
 
     assert 'REPO_URL = "https://github.com/codebycristian-dev/hfss-shearlet-colab.git"' in source
     assert 'if IN_COLAB and not (REPO_ROOT / "src").is_dir():' in source
-    assert 'REPO_REF = "gate2-shearlet"' in source
+    assert 'REPO_REF = "main"' in source
     assert '["git", "clone", "--depth", "1", "--branch", REPO_REF, "--single-branch", REPO_URL, str(REPO_ROOT)]' in source
     assert '["git", "clone", "--depth", "1", REPO_URL' not in source
-    assert 'change REPO_REF back to "main" immediately before merging' in source
+    assert "gate2" + "-shearlet" not in source
     for private_auth_term in (
         "GITHUB_TOKEN",
         "google.colab import userdata",
@@ -35,7 +35,7 @@ def test_colab_notebook_public_clone_and_gate1_assertions_are_reproducible():
     assert "Expected 40 metric rows" in source
     assert "parallel_y" in source and "perpendicular_y" in source
     assert "shared `cividis` scale" in source
-    assert "numeric NPZ matrices" in source
+    assert "numeric NPZ arrays" in source
 
 
 def test_notebook_runs_gate2_after_gate1_and_packages_combined_outputs():
@@ -47,10 +47,13 @@ def test_notebook_runs_gate2_after_gate1_and_packages_combined_outputs():
     assert "[1, 1, 2]" in source
     assert "Euclidean distance transform" in source
     assert "Expected 120 Shearlet level maps" in source
-    assert "Coefficient energy means a discrete sum" in source
+    assert "Shearlet coefficient energy is a signal-processing quantity" in source
     assert "coarser spatial-scale band" in source and "finer spatial-scale band" in source
     assert "dominant_cone_full_phantom" in source
     assert "dominant_cone_interior_1p5mm" in source
+    assert "Expected 120 numeric scale maps" in source
+    assert 'shearlet_metadata["full"] == 0' in source
+    assert 'shearlet_metadata["lowpass_filters"] == 1' in source
 
 
 def test_user_facing_shearlet_terminology_is_physically_unambiguous():
@@ -61,3 +64,5 @@ def test_user_facing_shearlet_terminology_is_physically_unambiguous():
     assert "RMS-normalized scale energy" not in visualization
     assert 'for ax, plane in zip(axes, ("XZ", "YZ"))' in visualization
     assert "scale_energy_fraction_interior" in visualization
+    assert "Mode 1 — parallel to y" in visualization
+    assert "Mode 2 — perpendicular to y" in visualization

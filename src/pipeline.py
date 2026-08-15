@@ -76,6 +76,7 @@ def run_intensity_pipeline(
     dataset_filename: str | None = None,
     dataset_sha256: str | None = None,
     git_commit_sha: str | None = None,
+    repository_ref: str = "main",
 ):
     data_root = Path(data_root)
     output_root = Path(output_root)
@@ -244,6 +245,7 @@ def run_intensity_pipeline(
         "dataset_filename": dataset_filename,
         "dataset_sha256": dataset_sha256,
         "git_commit_sha": git_commit_sha,
+        "repository_ref": repository_ref,
         "frequency_GHz": FREQUENCY_GHZ,
         "quantity": "Electric-field magnitude |E|",
         "unit": "V/m",

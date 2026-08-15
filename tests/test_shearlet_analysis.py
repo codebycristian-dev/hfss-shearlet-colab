@@ -179,6 +179,8 @@ def test_pipeline_deterministically_writes_40_artifacts_and_120_maps_and_rows(tm
     assert run_metadata["actual_total_filters"] == 33
     assert run_metadata["actual_filters_per_scale"] == {"1": 8, "2": 8, "3": 16}
     assert len(run_metadata["shearletIdxs"]) == 33
+    assert run_metadata["requested_repo_ref"] == "main"
+    assert run_metadata["dataset_filename"] is None
     assert run_metadata["scale_interpretation"]["3"] == "finer spatial-scale band"
     assert set(run_metadata["software_versions"]) == {
         "python", "numpy", "scipy", "matplotlib", "pyShearLab-MIND"
