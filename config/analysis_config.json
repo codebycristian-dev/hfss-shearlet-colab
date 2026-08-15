@@ -1,0 +1,32 @@
+{
+  "frequency_GHz": 2.45,
+  "phantom_radius_mm": 50.0,
+  "phantom_half_length_y_mm": 100.0,
+  "transverse_y_mm": [
+    -90,
+    -70,
+    -50,
+    -30,
+    -10,
+    10,
+    30,
+    50,
+    70,
+    90
+  ],
+  "axial_x_mm": [
+    -45,
+    -35,
+    -25,
+    -15,
+    -5,
+    5,
+    15,
+    25,
+    35,
+    45
+  ],
+  "expected_intensity_images": 40,
+  "shearlet_levels_future_gate": 3,
+  "notes": "Gate 1 intentionally excludes shearlet processing."
+}

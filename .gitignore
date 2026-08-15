@@ -1,0 +1,22 @@
+# Data
+data/
+*.fld
+*.zip
+
+# Generated results
+outputs/
+.work/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS/editor
+.DS_Store
+.vscode/
