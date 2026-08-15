@@ -105,7 +105,7 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     assert len(rows) == len(physical_pngs) == len(presentation_pngs) == len(article_pngs) == len(matrices) == len(metrics) == 40
     assert len(plot_calls) == 80
     assert len(article_calls) == 40
-    assert len(mosaic_calls) == 3
+    assert len(mosaic_calls) == 6
     assert not stale.exists()
     assert {(p.parent.parent.name, p.parent.name) for p in physical_pngs} == {
         ("Mode1", "XZ"), ("Mode1", "YZ"), ("Mode2", "XZ"), ("Mode2", "YZ")
@@ -139,8 +139,11 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     assert metadata["article_outside_mask_color"] == "#f2f2f2"
     assert metadata["article_figures"] == [
         "03_article_figures/xz_mosaic_all.png",
+        "03_article_figures/xz_mosaic_all.pdf",
         "03_article_figures/yz_mosaic_all.png",
+        "03_article_figures/yz_mosaic_all.pdf",
         "03_article_figures/representative_2x2.png",
+        "03_article_figures/representative_2x2.pdf",
     ]
     assert metadata["polarization_by_mode"] == {"Mode1": "parallel_y", "Mode2": "perpendicular_y"}
     physical_limits = {limit for path, limit, _ in plot_calls if "physical_shared" in path.parts}
@@ -150,11 +153,25 @@ def test_pipeline_writes_exact_outputs_numeric_matrices_and_metrics(tmp_path, mo
     assert presentation_limits == {metadata["presentation_shared_vmax_V_per_m"]}
     assert article_limits == {metadata["presentation_shared_vmax_V_per_m"]}
     assert {path.name for path, _, _ in mosaic_calls} == {
-        "xz_mosaic_all.png", "yz_mosaic_all.png", "representative_2x2.png"
+        "xz_mosaic_all.png", "xz_mosaic_all.pdf",
+        "yz_mosaic_all.png", "yz_mosaic_all.pdf",
+        "representative_2x2.png", "representative_2x2.pdf",
     }
     assert [(call[2]["nrows"], call[2]["ncols"], len(call[1])) for call in mosaic_calls] == [
-        (2, 10, 20), (2, 10, 20), (2, 2, 4)
+        (4, 5, 20), (4, 5, 20), (4, 5, 20), (4, 5, 20), (2, 2, 4), (2, 2, 4),
     ]
+    for _, panels, options in mosaic_calls[:4]:
+        assert [panel["title"] for panel in panels] == [
+            *(f"{panels[0]['title'][0]}{index:02d}" for index in range(1, 11)),
+            *(f"{panels[0]['title'][0]}{index:02d}" for index in range(1, 11)),
+        ]
+        assert options["row_group_labels"] == [
+            "Mode 1 · parallel to y", "Mode 1 · parallel to y",
+            "Mode 2 · perpendicular to y", "Mode 2 · perpendicular to y",
+        ]
+    article_files = sorted((output / "03_article_figures").iterdir())
+    assert len(article_files) == 6
+    assert {path.suffix for path in article_files} == {".png", ".pdf"}
     outlier_matrix = np.load(output / "02_numeric" / "Mode2" / "XZ" / "T10.npz")
     assert outlier_matrix["intensity_V_per_m"].max() == metadata["physical_shared_vmax_V_per_m"]
     assert outlier_matrix["intensity_V_per_m"].max() > metadata["presentation_shared_vmax_V_per_m"]

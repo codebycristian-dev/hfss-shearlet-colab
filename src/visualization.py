@@ -104,14 +104,17 @@ def save_article_image(axis1, axis2, intensity, mask, out_path, title, xlabel, y
 
 
 def save_article_mosaic(panels, out_path, *, nrows, ncols, vmin, vmax,
-                        outside_mask_color=ARTICLE_OUTSIDE_MASK_COLOR):
+                        outside_mask_color=ARTICLE_OUTSIDE_MASK_COLOR,
+                        row_group_labels=None):
     """Render article panels with one global scale and one shared colorbar."""
     if len(panels) != nrows * ncols:
         raise ValueError(f"Expected {nrows * ncols} mosaic panels, got {len(panels)}")
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    width = 24 if ncols == 10 else 10
-    fig, axes = plt.subplots(nrows, ncols, figsize=(width, 6.5), squeeze=False)
+    if row_group_labels is not None and len(row_group_labels) != nrows:
+        raise ValueError(f"Expected {nrows} row group labels, got {len(row_group_labels)}")
+    figsize = (12.0, 10.0) if (nrows, ncols) == (4, 5) else (9.5, 7.2)
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, squeeze=False)
     cmap = _article_colormap(outside_mask_color)
     image = None
     for ax, panel in zip(axes.flat, panels):
@@ -121,12 +124,23 @@ def save_article_mosaic(panels, out_path, *, nrows, ncols, vmin, vmax,
         image = _imshow_article(
             ax, axis1, axis2, intensity, mask, vmin=vmin, vmax=vmax, cmap=cmap
         )
-        ax.set_title(panel["title"], fontsize=8, pad=4)
-        ax.set_xlabel(panel["xlabel"], fontsize=7)
-        ax.set_ylabel(panel["ylabel"], fontsize=7)
-        ax.tick_params(labelsize=6)
-    fig.subplots_adjust(left=0.05, right=0.91, bottom=0.09, top=0.93, wspace=0.38, hspace=0.32)
-    colorbar_ax = fig.add_axes([0.93, 0.15, 0.012, 0.7])
+        ax.set_title(panel["title"], fontsize=9, pad=3)
+        ax.set_xlabel(panel["xlabel"], fontsize=8)
+        ax.set_ylabel(panel["ylabel"], fontsize=8)
+        ax.tick_params(labelsize=7)
+    left = 0.11 if row_group_labels else 0.07
+    fig.subplots_adjust(left=left, right=0.90, bottom=0.07, top=0.96, wspace=0.30, hspace=0.34)
+    if row_group_labels:
+        for row, label in enumerate(row_group_labels):
+            position = axes[row, 0].get_position()
+            fig.text(
+                0.025, (position.y0 + position.y1) / 2, label,
+                rotation=90, va="center", ha="center", fontsize=9, fontweight="semibold",
+            )
+    colorbar_ax = fig.add_axes([0.925, 0.15, 0.015, 0.70])
     fig.colorbar(image, cax=colorbar_ax, label=COLORBAR_LABEL)
-    fig.savefig(out_path, dpi=220, bbox_inches="tight", facecolor="white")
+    fig.savefig(
+        out_path, dpi=600 if out_path.suffix.lower() == ".png" else None,
+        bbox_inches="tight", facecolor="white",
+    )
     plt.close(fig)

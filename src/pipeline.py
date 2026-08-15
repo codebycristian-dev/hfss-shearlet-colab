@@ -60,7 +60,8 @@ def _validate_cut_coordinates(pair: FieldPair, coords: np.ndarray, coord_unit: s
 def _clear_generated_files(output_root: Path) -> None:
     """Remove only artifacts owned by this pipeline so reruns have exact counts."""
     for relative, suffix in (
-        ("01_intensity", ".png"), ("02_numeric", ".npz"), ("03_article_figures", ".png")
+        ("01_intensity", ".png"), ("02_numeric", ".npz"),
+        ("03_article_figures", ".png"), ("03_article_figures", ".pdf"),
     ):
         directory = output_root / relative
         if directory.exists():
@@ -192,37 +193,45 @@ def run_intensity_pipeline(
             "numeric_matrix": str(matrix_path.relative_to(output_root)),
         })
 
-    def panel(cut):
+    def panel(cut, *, compact_title=True):
         return {
             "axis1": cut.axis1, "axis2": cut.axis2, "intensity": cut.raw, "mask": cut.mask,
-            "title": f"{cut.cut_name}\nMode {cut.pair.mode} ({POLARIZATION_FIGURE_LABEL[cut.pair.mode]})",
+            "title": cut.cut_name if compact_title else (
+                f"{cut.cut_name} · Mode {cut.pair.mode}\n"
+                f"{POLARIZATION_FIGURE_LABEL[cut.pair.mode]}"
+            ),
             "xlabel": cut.xlabel, "ylabel": cut.ylabel,
         }
 
+    article_names = ("xz_mosaic_all", "yz_mosaic_all", "representative_2x2")
     article_figure_paths = [
-        output_root / "03_article_figures" / "xz_mosaic_all.png",
-        output_root / "03_article_figures" / "yz_mosaic_all.png",
-        output_root / "03_article_figures" / "representative_2x2.png",
+        output_root / "03_article_figures" / f"{name}.{suffix}"
+        for name in article_names for suffix in ("png", "pdf")
     ]
     xz_panels = [panel(cut) for mode in (1, 2) for cut in prepared
                   if cut.pair.mode == mode and cut.pair.plane == "XZ"]
     yz_panels = [panel(cut) for mode in (1, 2) for cut in prepared
                   if cut.pair.mode == mode and cut.pair.plane == "YZ"]
     representative = [panel(next(cut for cut in prepared
-                                  if cut.pair.mode == mode and cut.cut_name == name))
+                                  if cut.pair.mode == mode and cut.cut_name == name),
+                            compact_title=False)
                       for name in ("T05", "A05") for mode in (1, 2)]
-    save_article_mosaic(
-        xz_panels, article_figure_paths[0], nrows=2, ncols=10,
-        vmin=physical_vmin, vmax=presentation_vmax,
+    group_labels = [
+        "Mode 1 · parallel to y", "Mode 1 · parallel to y",
+        "Mode 2 · perpendicular to y", "Mode 2 · perpendicular to y",
+    ]
+    figure_specs = (
+        (xz_panels, article_names[0], 4, 5, group_labels),
+        (yz_panels, article_names[1], 4, 5, group_labels),
+        (representative, article_names[2], 2, 2, None),
     )
-    save_article_mosaic(
-        yz_panels, article_figure_paths[1], nrows=2, ncols=10,
-        vmin=physical_vmin, vmax=presentation_vmax,
-    )
-    save_article_mosaic(
-        representative, article_figure_paths[2], nrows=2, ncols=2,
-        vmin=physical_vmin, vmax=presentation_vmax,
-    )
+    for panels, name, nrows, ncols, labels in figure_specs:
+        for suffix in ("png", "pdf"):
+            save_article_mosaic(
+                panels, output_root / "03_article_figures" / f"{name}.{suffix}",
+                nrows=nrows, ncols=ncols, row_group_labels=labels,
+                vmin=physical_vmin, vmax=presentation_vmax,
+            )
 
     metrics_path = output_root / "04_metrics" / "field_metrics.csv"
     metrics_path.parent.mkdir(parents=True, exist_ok=True)

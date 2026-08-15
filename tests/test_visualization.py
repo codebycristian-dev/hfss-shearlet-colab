@@ -1,9 +1,11 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 from matplotlib.axes import Axes
 
 from src import visualization
-from src.visualization import save_article_image, save_intensity_image
+from src.visualization import save_article_image, save_article_mosaic, save_intensity_image
 
 
 def test_visualization_requires_shared_scale_uses_equal_aspect_and_writes_png(tmp_path, monkeypatch):
@@ -54,3 +56,27 @@ def test_article_visualization_uses_cividis_shared_scale_and_masks_exterior(tmp_
     assert options["vmin"] == 0.0 and options["vmax"] == 3.0
     assert options["aspect"] == "equal"
     assert options["interpolation"] == "nearest"
+
+
+def test_article_mosaic_exports_600_dpi_png_and_vector_pdf(tmp_path, monkeypatch):
+    image = np.array([[0.0, 1.0], [2.0, 3.0]])
+    mask = np.ones_like(image, dtype=bool)
+    panel = {
+        "axis1": np.array([0, 1]), "axis2": np.array([0, 1]),
+        "intensity": image, "mask": mask, "title": "T01",
+        "xlabel": "x [mm]", "ylabel": "z [mm]",
+    }
+    save_options = []
+    original_savefig = visualization.plt.Figure.savefig
+    def recording_savefig(self, *args, **kwargs):
+        save_options.append((Path(args[0]).suffix, kwargs.get("dpi")))
+        return original_savefig(self, *args, **kwargs)
+    monkeypatch.setattr(visualization.plt.Figure, "savefig", recording_savefig)
+    for suffix in ("png", "pdf"):
+        save_article_mosaic(
+            [panel] * 4, tmp_path / f"mosaic.{suffix}", nrows=2, ncols=2,
+            vmin=0.0, vmax=3.0, row_group_labels=["Mode 1", "Mode 2"],
+        )
+    assert save_options == [(".png", 600), (".pdf", None)]
+    assert (tmp_path / "mosaic.png").is_file()
+    assert (tmp_path / "mosaic.pdf").read_bytes().startswith(b"%PDF")
